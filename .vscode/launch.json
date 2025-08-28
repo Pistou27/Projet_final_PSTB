@@ -1,0 +1,32 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Ingestion Documents",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/ingest.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "name": "Serveur Flask",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/app.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "name": "Test RAG Pipeline",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/orchestrator.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

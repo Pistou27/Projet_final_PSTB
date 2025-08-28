@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat RAG - Projet Final GenIA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .header-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .header-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .sessions-toggle {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sessions-sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .sessions-sidebar.hidden {
+            margin-left: -300px;
+        }
+
+        .chat-container.sidebar-hidden {
+            max-width: none;
+        }
+
+        .chat-container.sidebar-hidden .chat-main {
+            margin-left: 0;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .sessions-header {
+            padding: 1rem;
+            background: #e9ecef;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sessions-list {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 60vh;
+        }
+
+        .session-item {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .session-item:hover {
+            background-color: #e9ecef;
+        }
+
+        .session-item.active {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .session-title {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .session-meta {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .session-item.active .session-meta {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .messages {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            max-height: 60vh;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+
+        .user-message {
+            background-color: #e3f2fd;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .assistant-message {
+            background-color: #f5f5f5;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
+        .assistant-message.info {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+
+        .assistant-message.success {
+            background-color: #e8f5e8;
+            border-left: 4px solid #4caf50;
+        }
+
+        .assistant-message.error {
+            background-color: #ffebee;
+            border-left: 4px solid #f44336;
+        }
+
+        .input-container {
+            padding: 1rem;
+            border-top: 1px solid #eee;
+            background: white;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+            font-size: 1rem;
+        }
+
+        #messageInput:focus {
+            border-color: #667eea;
+        }
+
+        #sendButton {
+            padding: 0.75rem 1.5rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+
+        #sendButton:hover:not(:disabled) {
+            background: #5a67d8;
+        }
+
+        #sendButton:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+
+        .error {
+            color: #e53e3e;
+            background-color: #fed7d7;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+        }
+
+        .sources {
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background-color: #f0f8ff;
+            border-left: 3px solid #667eea;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .source-item {
+            margin: 0.25rem 0;
+            color: #555;
+        }
+
+        .session-btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.7rem;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-left: 0.5rem;
+        }
+
+        .session-btn:hover {
+            background: #f8f9fa;
+        }
+
+        .session-btn.delete {
+            color: #dc3545;
+            border-color: #dc3545;
+        }
+
+        .session-btn.delete:hover {
+            background: #f5c6cb;
+        }
+
+        .new-session-btn {
+            width: calc(100% - 2rem);
+            padding: 0.75rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .new-session-btn:hover {
+            background: #5a67d8;
+        }
+
+        .delete-all-sessions-btn {
+            width: calc(100% - 2rem);
+            padding: 0.75rem;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin: 0rem 1rem 1rem 1rem;
+            transition: background 0.3s;
+        }
+
+        .delete-all-sessions-btn:hover {
+            background: #c82333;
+        }
+
+        .delete-all-sessions-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .toggle-sessions {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            z-index: 100;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .sessions-sidebar {
+                position: absolute;
+                height: 100%;
+                z-index: 50;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 Assistant IA - Système RAG</h1>
+        <p>Posez-moi des questions sur les documents disponibles</p>
+        <div class="header-buttons">
+            <button id="toggleSidebarBtn" class="header-btn" onclick="toggleSidebar()" title="Afficher/Masquer les sessions">
+                💬 Sessions
+            </button>
+            <button id="statusBtn" class="header-btn" onclick="checkDocumentsStatus()">
+                📊 Statut Documents
+            </button>
+            <button id="ingestBtn" class="header-btn" onclick="triggerIngestion()">
+                📂 Indexer Documents
+            </button>
+        </div>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+        <!-- Sessions Sidebar -->
+        <div class="sessions-sidebar" id="sessionsSidebar">
+            <div class="sessions-header">
+                <h3>💬 Sessions</h3>
+                <button class="session-btn" onclick="toggleSessions()">✕</button>
+            </div>
+            <button class="new-session-btn" onclick="createNewSession()">
+                ➕ Nouvelle session
+            </button>
+            <button class="delete-all-sessions-btn" onclick="deleteAllSessions()">
+                🗑️ Supprimer toutes les sessions
+            </button>
+            <div class="sessions-list" id="sessionsList">
+                <!-- Sessions will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="chat-main">
+            <button class="toggle-sessions" onclick="toggleSessions()">💬</button>
+            
+            <div class="messages" id="messages">
+                <div class="message assistant-message">
+                    <div>👋 Bonjour ! Je suis votre assistant IA spécialisé dans l'analyse de documents.</div>
+                    <div>Posez-moi des questions sur les documents disponibles et je vous répondrai en français avec les références des pages sources.</div>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <div class="input-group">
+                    <input type="text" id="messageInput" placeholder="Tapez votre question ici..." maxlength="1000">
+                    <button id="sendButton" disabled>Envoyer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Elements
+        const messagesContainer = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const statusBtn = document.getElementById('statusBtn');
+        const ingestBtn = document.getElementById('ingestBtn');
+        const sessionsSidebar = document.getElementById('sessionsSidebar');
+        const sessionsList = document.getElementById('sessionsList');
+
+        let isLoading = false;
+        let currentSessionId = null;
+        let sessionsVisible = false;
+
+        // Utility function
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Show notification message
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `message assistant-message ${type}`;
+            notification.innerHTML = message;
+            messagesContainer.appendChild(notification);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Check documents status
+        async function checkDocumentsStatus() {
+            statusBtn.disabled = true;
+            statusBtn.textContent = '🔄 Vérification...';
+
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+
+                if (data.success) {
+                    const totalDocs = data.indexed_documents;
+                    const message = `📊 <strong>Statut des documents :</strong><br>
+                        • Documents indexés : <strong>${totalDocs}</strong><br>
+                        • Répertoire de données : <code>data/</code><br>
+                        • Index vectoriel : ${data.vectorstore_exists ? '✅ Disponible' : '❌ Non trouvé'}`;
+                    showNotification(message, 'info');
+                } else {
+                    showNotification(`❌ Erreur lors de la vérification : ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`❌ Erreur de connexion : ${error.message}`, 'error');
+            } finally {
+                statusBtn.disabled = false;
+                statusBtn.textContent = '📊 Statut Documents';
+            }
+        }
+
+        // Trigger document ingestion
+        async function triggerIngestion() {
+            ingestBtn.disabled = true;
+            ingestBtn.textContent = '🔄 Indexation...';
+
+            showNotification('🚀 <strong>Début de l\'indexation des documents...</strong><br>Cette opération peut prendre quelques minutes.', 'info');
+
+            try {
+                const response = await fetch('/api/ingest', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const message = `✅ <strong>Indexation terminée avec succès !</strong><br>
+                        • Documents traités : <strong>${data.processed_documents}</strong><br>
+                        • Chunks créés : <strong>${data.total_chunks}</strong><br>
+                        • Temps de traitement : <strong>${data.processing_time}</strong>`;
+                    showNotification(message, 'success');
+                } else {
+                    showNotification(`❌ Erreur lors de l'indexation : ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`❌ Erreur de connexion : ${error.message}`, 'error');
+            } finally {
+                ingestBtn.disabled = false;
+                ingestBtn.textContent = '📂 Indexer Documents';
+            }
+        }
+
+        // Session Management Functions
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sessionsSidebar');
+            const container = document.getElementById('chatContainer');
+            const toggleBtn = document.getElementById('toggleSidebarBtn');
+            
+            console.log('Toggle sidebar called');
+            console.log('Sidebar element:', sidebar);
+            console.log('Container element:', container);
+            console.log('Toggle button:', toggleBtn);
+            
+            const isHidden = sidebar.classList.contains('hidden');
+            console.log('Is currently hidden:', isHidden);
+            
+            if (isHidden) {
+                sidebar.classList.remove('hidden');
+                container.classList.remove('sidebar-hidden');
+                toggleBtn.innerHTML = '💬 Sessions';
+                localStorage.setItem('sidebarHidden', 'false');
+                sessionsVisible = true;
+                loadSessions();
+                console.log('Sidebar shown');
+            } else {
+                sidebar.classList.add('hidden');
+                container.classList.add('sidebar-hidden');
+                toggleBtn.innerHTML = '💬 Afficher';
+                localStorage.setItem('sidebarHidden', 'true');
+                sessionsVisible = false;
+                console.log('Sidebar hidden');
+            }
+        }
+
+        // Initialize sidebar state from localStorage
+        function initializeSidebarState() {
+            const isHidden = localStorage.getItem('sidebarHidden') === 'true';
+            const sidebar = document.getElementById('sessionsSidebar');
+            const container = document.getElementById('chatContainer');
+            const toggleBtn = document.getElementById('toggleSidebarBtn');
+            
+            if (isHidden) {
+                sidebar.classList.add('hidden');
+                container.classList.add('sidebar-hidden');
+                toggleBtn.innerHTML = '💬 Afficher';
+                sessionsVisible = false;
+            } else {
+                sessionsVisible = true;
+                loadSessions();
+            }
+        }
+        function toggleSessions() {
+            sessionsVisible = !sessionsVisible;
+            if (sessionsVisible) {
+                sessionsSidebar.classList.remove('hidden');
+                loadSessions();
+            } else {
+                sessionsSidebar.classList.add('hidden');
+            }
+        }
+
+        async function loadSessions() {
+            try {
+                const response = await fetch('/api/sessions');
+                const data = await response.json();
+
+                if (data.success) {
+                    displaySessions(data.sessions);
+                } else {
+                    console.error('Error loading sessions:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+            }
+        }
+
+        function displaySessions(sessions) {
+            sessionsList.innerHTML = '';
+            
+            if (sessions.length === 0) {
+                sessionsList.innerHTML = '<div style="padding: 1rem; text-align: center; color: #6c757d;">Aucune session trouvée</div>';
+                return;
+            }
+
+            sessions.forEach(session => {
+                const sessionDiv = document.createElement('div');
+                sessionDiv.className = `session-item ${session.session_id === currentSessionId ? 'active' : ''}`;
+                sessionDiv.onclick = () => selectSession(session.session_id);
+
+                const lastActivity = new Date(session.last_activity).toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                sessionDiv.innerHTML = `
+                    <div class="session-title">${session.title || 'Session sans titre'}</div>
+                    <div class="session-meta">
+                        ${session.message_count} messages • ${lastActivity}
+                        <button class="session-btn delete" onclick="event.stopPropagation(); deleteSession('${session.session_id}')">
+                            🗑️
+                        </button>
+                    </div>
+                `;
+
+                sessionsList.appendChild(sessionDiv);
+            });
+        }
+
+        async function createNewSession() {
+            try {
+                const sessionId = 'session_' + Date.now();
+                const response = await fetch('/api/sessions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        title: 'Nouvelle conversation'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentSessionId = sessionId;
+                    clearMessages();
+                    loadSessions();
+                    showNotification('✅ Nouvelle session créée !', 'success');
+                } else {
+                    showNotification(`❌ Erreur lors de la création : ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`❌ Erreur de connexion : ${error.message}`, 'error');
+            }
+        }
+
+        async function selectSession(sessionId) {
+            if (sessionId === currentSessionId) return;
+
+            currentSessionId = sessionId;
+            clearMessages();
+            
+            try {
+                const response = await fetch(`/api/sessions/${sessionId}/history`);
+                const data = await response.json();
+
+                if (data.success) {
+                    loadSessionHistory(data.history);
+                    loadSessions(); // Refresh to update active state
+                    showNotification(`📂 Session chargée (${data.history.length} messages)`, 'info');
+                } else {
+                    showNotification(`❌ Erreur lors du chargement : ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`❌ Erreur de connexion : ${error.message}`, 'error');
+            }
+        }
+
+        async function deleteSession(sessionId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer cette session ?')) return;
+
+            try {
+                const response = await fetch(`/api/sessions/${sessionId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    if (sessionId === currentSessionId) {
+                        currentSessionId = null;
+                        clearMessages();
+                    }
+                    loadSessions();
+                    showNotification('✅ Session supprimée !', 'success');
+                } else {
+                    showNotification(`❌ Erreur lors de la suppression : ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`❌ Erreur de connexion : ${error.message}`, 'error');
+            }
+        }
+
+        async function deleteAllSessions() {
+            if (!confirm('⚠️ Êtes-vous sûr de vouloir supprimer TOUTES les sessions ? Cette action est irréversible !')) return;
+
+            const deleteAllBtn = document.querySelector('.delete-all-sessions-btn');
+            deleteAllBtn.disabled = true;
+            deleteAllBtn.textContent = '🔄 Suppression...';
+
+            try {
+                // First, get all sessions
+                const sessionsResponse = await fetch('/api/sessions');
+                const sessionsData = await sessionsResponse.json();
+
+                if (!sessionsData.success) {
+                    throw new Error('Impossible de récupérer la liste des sessions');
+                }
+
+                const sessions = sessionsData.sessions;
+                if (sessions.length === 0) {
+                    showNotification('ℹ️ Aucune session à supprimer.', 'info');
+                    return;
+                }
+
+                // Delete each session
+                let deletedCount = 0;
+                let errors = 0;
+
+                for (const session of sessions) {
+                    try {
+                        const response = await fetch(`/api/sessions/${session.session_id}`, {
+                            method: 'DELETE'
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            deletedCount++;
+                        } else {
+                            errors++;
+                        }
+                    } catch (error) {
+                        errors++;
+                    }
+                }
+
+                // Reset current session
+                currentSessionId = null;
+                clearMessages();
+                
+                // Refresh sessions list
+                loadSessions();
+
+                // Show result notification
+                if (errors === 0) {
+                    showNotification(`✅ Toutes les sessions ont été supprimées ! (${deletedCount} sessions)`, 'success');
+                } else {
+                    showNotification(`⚠️ ${deletedCount} sessions supprimées, ${errors} erreurs.`, 'error');
+                }
+
+            } catch (error) {
+                showNotification(`❌ Erreur lors de la suppression : ${error.message}`, 'error');
+            } finally {
+                deleteAllBtn.disabled = false;
+                deleteAllBtn.textContent = '🗑️ Supprimer Toutes les Sessions';
+            }
+        }
+
+        function loadSessionHistory(history) {
+            // Add welcome message first
+            addMessage('👋 Bonjour ! Je suis votre assistant IA spécialisé dans l\'analyse de documents.<br>Posez-moi des questions sur les documents disponibles et je vous répondrai en français avec les références des pages sources.', 'assistant');
+
+            // Load conversation history
+            history.forEach(exchange => {
+                addMessage(exchange.user_message, 'user');
+                addMessage(exchange.assistant_response, 'assistant', exchange.sources);
+            });
+        }
+
+        function clearMessages() {
+            messagesContainer.innerHTML = '';
+            // Add default welcome message
+            addMessage('👋 Bonjour ! Je suis votre assistant IA spécialisé dans l\'analyse de documents.<br>Posez-moi des questions sur les documents disponibles et je vous répondrai en français avec les références des pages sources.', 'assistant');
+        }
+
+        // Enable/disable send button
+        function updateSendButton() {
+            const hasText = messageInput.value.trim().length > 0;
+            sendButton.disabled = !hasText || isLoading;
+        }
+
+        // Add message to chat
+        function addMessage(content, type, sources = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}-message`;
+            
+            let messageContent = '';
+            if (type === 'user') {
+                messageContent = escapeHtml(content);
+            } else {
+                messageContent = content; // Assistant messages can contain HTML/Markdown
+            }
+            
+            messageDiv.innerHTML = messageContent;
+
+            // Add sources if provided
+            if (sources && sources.length > 0) {
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.className = 'sources';
+                sourcesDiv.innerHTML = '<strong>📚 Sources :</strong><br>' + 
+                    sources.map(source => 
+                        `<div class="source-item">• ${source.document} (page ${source.page})</div>`
+                    ).join('');
+                messageDiv.appendChild(sourcesDiv);
+            }
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Send message
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || isLoading) return;
+
+            // Add user message
+            addMessage(message, 'user');
+            messageInput.value = '';
+            updateSendButton();
+
+            // Set loading state
+            isLoading = true;
+            updateSendButton();
+            
+            // Add loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message assistant-message loading';
+            loadingDiv.textContent = '🤔 Je réfléchis...';
+            loadingDiv.id = 'loading-message';
+            messagesContainer.appendChild(loadingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: currentSessionId
+                    })
+                });
+
+                // Remove loading indicator
+                const loadingElement = document.getElementById('loading-message');
+                if (loadingElement) {
+                    loadingElement.remove();
+                }
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Debug logging to see what we're actually receiving
+                console.log('API Response:', data);
+
+                // Check if we have a valid response (API returns 'response' field when successful)
+                if (data.response) {
+                    // Update current session ID if it was created
+                    if (data.session_id && !currentSessionId) {
+                        currentSessionId = data.session_id;
+                        loadSessions(); // Refresh sessions list
+                    }
+                    
+                    addMessage(data.response, 'assistant', data.sources);
+                } else {
+                    // Handle error case (API returns 'error' field when there's an error)
+                    addMessage(`❌ Erreur: ${data.error || 'Unknown error'}`, 'assistant');
+                    console.log('Error details:', data);
+                }
+
+            } catch (error) {
+                // Remove loading indicator
+                const loadingElement = document.getElementById('loading-message');
+                if (loadingElement) {
+                    loadingElement.remove();
+                }
+                
+                console.error('Erreur:', error);
+                addMessage(`❌ Erreur de connexion: ${error.message}`, 'assistant');
+            } finally {
+                isLoading = false;
+                updateSendButton();
+            }
+        }
+
+        // Event listeners
+        messageInput.addEventListener('input', updateSendButton);
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        sendButton.addEventListener('click', sendMessage);
+
+        // Initialize
+        updateSendButton();
+        messageInput.focus();
+        
+        // Initialize sidebar state and load sessions if visible
+        initializeSidebarState();
+    </script>
+</body>
+</html>

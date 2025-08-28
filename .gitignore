@@ -4,9 +4,10 @@ __pycache__/
 *$py.class
 *.so
 .Python
-venv/
+.venv/
 env/
 ENV/
+data/*
 
 # Environment variables
 .env

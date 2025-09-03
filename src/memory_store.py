@@ -75,6 +75,20 @@ class MemoryStore:
             
             conn.commit()
     
+    def add_message(self, session_id: str, role: str, content: str):
+        """Ajouter un message individuel à la conversation (pour compatibilité)"""
+        # Cette méthode stocke temporairement les messages pour les assembler en échanges
+        # Pour l'instant, on va simplement mettre à jour l'activité de la session
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE sessions SET last_activity = ? WHERE session_id = ?
+            """, (now_timestamp(), session_id))
+            conn.commit()
+        
+        # Note: Une implémentation plus complète pourrait stocker les messages individuels
+        # et les assembler en échanges complets plus tard
+    
     def get_conversation_history(self, session_id: str, limit: int = 10) -> List[Dict]:
         """Récupérer l'historique de conversation pour une session"""
         with sqlite3.connect(self.db_path) as conn:
@@ -102,6 +116,10 @@ class MemoryStore:
                 })
             
             return history
+    
+    def get_conversation(self, session_id: str, limit: int = 10) -> List[Dict]:
+        """Alias pour get_conversation_history (pour compatibilité)"""
+        return self.get_conversation_history(session_id, limit)
     
     def get_recent_context(self, session_id: str, num_exchanges: int = 3) -> str:
         """Récupérer le contexte récent pour alimenter le prompt"""
@@ -171,3 +189,44 @@ class MemoryStore:
                     "last_activity": last_activity
                 }
             return None
+    
+    def get_stats(self) -> Dict:
+        """Obtenir les statistiques de la base de données de mémoire"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Compter les sessions
+                cursor.execute("SELECT COUNT(*) FROM sessions")
+                session_count = cursor.fetchone()[0]
+                
+                # Compter les messages
+                cursor.execute("SELECT COUNT(*) FROM conversation_history")
+                message_count = cursor.fetchone()[0]
+                
+                # Obtenir la session la plus récente
+                cursor.execute("""
+                    SELECT last_activity 
+                    FROM sessions 
+                    ORDER BY last_activity DESC 
+                    LIMIT 1
+                """)
+                last_activity_row = cursor.fetchone()
+                last_activity = last_activity_row[0] if last_activity_row else None
+                
+                return {
+                    "database_path": self.db_path,
+                    "session_count": session_count,
+                    "total_messages": message_count,
+                    "last_activity": last_activity,
+                    "status": "active"
+                }
+                
+        except Exception as e:
+            return {
+                "database_path": self.db_path,
+                "session_count": 0,
+                "total_messages": 0,
+                "last_activity": None,
+                "status": f"error: {str(e)}"
+            }

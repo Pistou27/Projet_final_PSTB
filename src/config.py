@@ -31,7 +31,7 @@ class Config:
     CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
     
     # Configuration des embeddings
-    EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+    EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
     
     # Configuration Ollama
     OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "mistral:latest")

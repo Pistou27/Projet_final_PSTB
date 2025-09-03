@@ -62,6 +62,36 @@ def get_project_root() -> str:
     """Retourne le répertoire racine du projet"""
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+def calculate_file_hash(file_path: str) -> str:
+    """Calcule le hash SHA256 d'un fichier"""
+    import hashlib
+    sha256_hash = hashlib.sha256()
+    try:
+        with open(file_path, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        return sha256_hash.hexdigest()
+    except Exception as e:
+        Logger.error(f"Erreur calcul hash pour {file_path}: {e}")
+        return ""
+
+def generate_chunk_hash(content: str, metadata: dict) -> str:
+    """Générer un hash stable pour un chunk"""
+    import hashlib
+    signature = f"{content}|{metadata.get('source', '')}|{metadata.get('page', 0)}"
+    return hashlib.md5(signature.encode('utf-8')).hexdigest()
+
+def count_pdf_pages(pdf_path: str) -> int:
+    """Compter le nombre de pages d'un PDF"""
+    try:
+        import PyPDF2
+        with open(pdf_path, 'rb') as file:
+            pdf_reader = PyPDF2.PdfReader(file)
+            return len(pdf_reader.pages)
+    except Exception as e:
+        Logger.warning(f"Erreur lors du comptage des pages pour {pdf_path}: {e}")
+        return 1  # Par défaut, considérer comme 1 page
+
 class Logger:
     """Simple logger avec emojis et niveaux"""
     

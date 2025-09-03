@@ -24,7 +24,7 @@ class RAGConfig:
     # Qdrant
     VECTOR_SIZE = 1024  # BGE-M3 embedding size
     COLLECTION_NAME = "documents"
-    QDRANT_PATH = "vectorstore/qdrant_local"
+    QDRANT_PATH = "../vectorstore/qdrant_local"
     
     # Mistral/Ollama
     OLLAMA_HOST = "http://localhost:11434"

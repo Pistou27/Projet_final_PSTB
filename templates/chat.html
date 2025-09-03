@@ -4,363 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat RAG - Projet Final GenIA</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1rem;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .header h1 {
-            margin-bottom: 0.5rem;
-        }
-
-        .header p {
-            margin-bottom: 1rem;
-            opacity: 0.9;
-        }
-
-        .header-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 1rem;
-        }
-
-        .header-btn {
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.3s;
-            backdrop-filter: blur(10px);
-        }
-
-        .header-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .header-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .sessions-toggle {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 0.5rem;
-            border-radius: 15px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            margin-top: 0.5rem;
-        }
-
-        .chat-container {
-            flex: 1;
-            display: flex;
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .sessions-sidebar {
-            width: 300px;
-            background: #f8f9fa;
-            border-right: 1px solid #e9ecef;
-            display: flex;
-            flex-direction: column;
-            transition: margin-left 0.3s ease;
-            flex-shrink: 0;
-        }
-
-        .sessions-sidebar.hidden {
-            margin-left: -300px;
-        }
-
-        .chat-container.sidebar-hidden {
-            max-width: none;
-        }
-
-        .chat-container.sidebar-hidden .chat-main {
-            margin-left: 0;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .sessions-header {
-            padding: 1rem;
-            background: #e9ecef;
-            border-bottom: 1px solid #dee2e6;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .sessions-list {
-            flex: 1;
-            overflow-y: auto;
-            max-height: 60vh;
-        }
-
-        .session-item {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid #e9ecef;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .session-item:hover {
-            background-color: #e9ecef;
-        }
-
-        .session-item.active {
-            background-color: #667eea;
-            color: white;
-        }
-
-        .session-title {
-            font-weight: 500;
-            margin-bottom: 0.25rem;
-        }
-
-        .session-meta {
-            font-size: 0.8rem;
-            color: #6c757d;
-        }
-
-        .session-item.active .session-meta {
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .chat-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .messages {
-            flex: 1;
-            padding: 1rem;
-            overflow-y: auto;
-            max-height: 60vh;
-        }
-
-        .message {
-            margin-bottom: 1rem;
-            padding: 0.75rem;
-            border-radius: 8px;
-            max-width: 80%;
-        }
-
-        .user-message {
-            background-color: #e3f2fd;
-            margin-left: auto;
-            border-bottom-right-radius: 4px;
-        }
-
-        .assistant-message {
-            background-color: #f5f5f5;
-            margin-right: auto;
-            border-bottom-left-radius: 4px;
-        }
-
-        .assistant-message.info {
-            background-color: #e3f2fd;
-            border-left: 4px solid #2196f3;
-        }
-
-        .assistant-message.success {
-            background-color: #e8f5e8;
-            border-left: 4px solid #4caf50;
-        }
-
-        .assistant-message.error {
-            background-color: #ffebee;
-            border-left: 4px solid #f44336;
-        }
-
-        .input-container {
-            padding: 1rem;
-            border-top: 1px solid #eee;
-            background: white;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        #messageInput {
-            flex: 1;
-            padding: 0.75rem;
-            border: 2px solid #ddd;
-            border-radius: 25px;
-            outline: none;
-            font-size: 1rem;
-        }
-
-        #messageInput:focus {
-            border-color: #667eea;
-        }
-
-        #sendButton {
-            padding: 0.75rem 1.5rem;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background 0.3s;
-        }
-
-        #sendButton:hover:not(:disabled) {
-            background: #5a67d8;
-        }
-
-        #sendButton:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-
-        .loading {
-            color: #666;
-            font-style: italic;
-        }
-
-        .error {
-            color: #e53e3e;
-            background-color: #fed7d7;
-            padding: 0.75rem;
-            border-radius: 8px;
-            margin: 0.5rem 0;
-        }
-
-        .sources {
-            margin-top: 0.5rem;
-            padding: 0.5rem;
-            background-color: #f0f8ff;
-            border-left: 3px solid #667eea;
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-
-        .source-item {
-            margin: 0.25rem 0;
-            color: #555;
-        }
-
-        .session-btn {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.7rem;
-            border: 1px solid #dee2e6;
-            background: white;
-            border-radius: 12px;
-            cursor: pointer;
-            margin-left: 0.5rem;
-        }
-
-        .session-btn:hover {
-            background: #f8f9fa;
-        }
-
-        .session-btn.delete {
-            color: #dc3545;
-            border-color: #dc3545;
-        }
-
-        .session-btn.delete:hover {
-            background: #f5c6cb;
-        }
-
-        .new-session-btn {
-            width: calc(100% - 2rem);
-            padding: 0.75rem;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            margin: 1rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .new-session-btn:hover {
-            background: #5a67d8;
-        }
-
-        .delete-all-sessions-btn {
-            width: calc(100% - 2rem);
-            padding: 0.75rem;
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            margin: 0rem 1rem 1rem 1rem;
-            transition: background 0.3s;
-        }
-
-        .delete-all-sessions-btn:hover {
-            background: #c82333;
-        }
-
-        .delete-all-sessions-btn:disabled {
-            background: #6c757d;
-            cursor: not-allowed;
-        }
-
-        .toggle-sessions {
-            position: absolute;
-            top: 1rem;
-            left: 1rem;
-            z-index: 100;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-            font-size: 1.2rem;
-        }
-
-        @media (max-width: 768px) {
-            .sessions-sidebar {
-                position: absolute;
-                height: 100%;
-                z-index: 50;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="header">
@@ -375,6 +19,9 @@
             </button>
             <button id="ingestBtn" class="header-btn" onclick="triggerIngestion()">
                 📂 Indexer Documents
+            </button>
+            <button id="toggleDocsBtn" class="header-btn" onclick="toggleDocumentsSidebar()" title="Afficher/Masquer les documents">
+                � Documents
             </button>
         </div>
     </div>
@@ -398,9 +45,7 @@
         </div>
 
         <!-- Main Chat Area -->
-        <div class="chat-main">
-            <button class="toggle-sessions" onclick="toggleSessions()">💬</button>
-            
+        <div class="chat-main">            
             <div class="messages" id="messages">
                 <div class="message assistant-message">
                     <div>👋 Bonjour ! Je suis votre assistant IA spécialisé dans l'analyse de documents.</div>
@@ -415,6 +60,17 @@
                 </div>
             </div>
         </div>
+
+        <!-- Documents Sidebar -->
+        <div class="documents-sidebar" id="documentsSidebar">
+            <div class="documents-header">
+                <h3>📚 Documents</h3>
+                <button class="docs-toggle-btn" onclick="toggleDocumentsSidebar()" title="Masquer les documents">✕</button>
+            </div>
+            <div class="documents-list" id="documentsList">
+                <!-- Documents will be loaded here -->
+            </div>
+        </div>
     </div>
 
     <script>
@@ -426,10 +82,13 @@
         const ingestBtn = document.getElementById('ingestBtn');
         const sessionsSidebar = document.getElementById('sessionsSidebar');
         const sessionsList = document.getElementById('sessionsList');
+        const documentsSidebar = document.getElementById('documentsSidebar');
+        const documentsList = document.getElementById('documentsList');
 
         let isLoading = false;
         let currentSessionId = null;
         let sessionsVisible = false;
+        let selectedDocuments = new Set();
 
         // Utility function
         function escapeHtml(text) {
@@ -453,18 +112,22 @@
             statusBtn.textContent = '🔄 Vérification...';
 
             try {
-                const response = await fetch('/api/status');
+                const response = await fetch('/api/ingest/status');
                 const data = await response.json();
 
                 if (data.success) {
-                    const totalDocs = data.indexed_documents;
-                    const message = `📊 <strong>Statut des documents :</strong><br>
-                        • Documents indexés : <strong>${totalDocs}</strong><br>
-                        • Répertoire de données : <code>data/</code><br>
-                        • Index vectoriel : ${data.vectorstore_exists ? '✅ Disponible' : '❌ Non trouvé'}`;
-                    showNotification(message, 'info');
+                    // Afficher simplement la liste des documents disponibles
+                    if (data.all_document_names && data.all_document_names.length > 0) {
+                        const documentsList = data.all_document_names.join(', ');
+                        const statusText = data.index_exists ? '✅ Documents indexés' : '📄 Documents disponibles';
+                        
+                        const message = `📚 <strong>${statusText} :</strong><br>${documentsList}`;
+                        showNotification(message, data.index_exists ? 'success' : 'info');
+                    } else {
+                        showNotification('📭 <strong>Aucun document trouvé</strong><br>Veuillez ajouter des fichiers PDF dans le dossier data/', 'error');
+                    }
                 } else {
-                    showNotification(`❌ Erreur lors de la vérification : ${data.error}`, 'error');
+                    showNotification(`❌ Erreur lors de la vérification : ${data.message}`, 'error');
                 }
             } catch (error) {
                 showNotification(`❌ Erreur de connexion : ${error.message}`, 'error');
@@ -488,11 +151,35 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    const message = `✅ <strong>Indexation terminée avec succès !</strong><br>
-                        • Documents traités : <strong>${data.processed_documents}</strong><br>
-                        • Chunks créés : <strong>${data.total_chunks}</strong><br>
-                        • Temps de traitement : <strong>${data.processing_time}</strong>`;
-                    showNotification(message, 'success');
+                    // Déterminer le message en fonction des résultats
+                    const processed = data.processed_documents || 0;
+                    const chunks = data.total_chunks || 0;
+                    const skipped = data.stats ? data.stats.files_skipped || 0 : 0;
+                    const processing_time = data.processing_time || "Non disponible";
+                    
+                    let message;
+                    if (chunks > 0) {
+                        // Cas normal: nouveaux chunks ajoutés
+                        message = `✅ <strong>Indexation terminée avec succès !</strong><br>
+                            • Documents traités : <strong>${processed}</strong><br>
+                            • Chunks créés : <strong>${chunks}</strong><br>
+                            • Temps de traitement : <strong>${processing_time}</strong>`;
+                    } else if (skipped > 0) {
+                        // Cas où tous les documents sont déjà indexés
+                        message = `ℹ️ <strong>Indexation terminée !</strong><br>
+                            • Documents déjà indexés : <strong>${skipped}</strong><br>
+                            • Nouveaux chunks : <strong>${chunks}</strong><br>
+                            • Temps de traitement : <strong>${processing_time}</strong><br>
+                            <em>Tous les documents sont déjà à jour dans l'index.</em>`;
+                    } else {
+                        // Cas par défaut
+                        message = `✅ <strong>Indexation terminée !</strong><br>
+                            • Documents traités : <strong>${processed}</strong><br>
+                            • Chunks créés : <strong>${chunks}</strong><br>
+                            • Temps de traitement : <strong>${processing_time}</strong>`;
+                    }
+                    
+                    showNotification(message, chunks > 0 ? 'success' : 'info');
                 } else {
                     showNotification(`❌ Erreur lors de l'indexation : ${data.error}`, 'error');
                 }
@@ -770,6 +457,123 @@
             addMessage('👋 Bonjour ! Je suis votre assistant IA spécialisé dans l\'analyse de documents.<br>Posez-moi des questions sur les documents disponibles et je vous répondrai en français avec les références des pages sources.', 'assistant');
         }
 
+        // Documents Management Functions
+        function toggleDocumentsSidebar() {
+            const toggleBtn = document.getElementById('toggleDocsBtn');
+            const isHidden = documentsSidebar.classList.toggle('hidden');
+            
+            if (isHidden) {
+                toggleBtn.innerHTML = '📚 Afficher';
+                toggleBtn.title = 'Afficher les documents';
+            } else {
+                toggleBtn.innerHTML = '📚 Documents';
+                toggleBtn.title = 'Masquer les documents';
+            }
+        }
+
+        async function loadDocuments() {
+            try {
+                const response = await fetch('/api/ingest/status');
+                const data = await response.json();
+
+                if (data.success && data.document_names) {
+                    displayDocuments(data.document_names);
+                    // Select only the first document by default
+                    selectedDocuments.clear();
+                    if (data.document_names.length > 0) {
+                        selectedDocuments.add(data.document_names[0].filename);
+                    }
+                    updateDocumentSelection();
+                } else {
+                    documentsList.innerHTML = '<div style="padding: 1rem; text-align: center; color: #6c757d;">Aucun document trouvé</div>';
+                }
+            } catch (error) {
+                console.error('Error loading documents:', error);
+                documentsList.innerHTML = '<div style="padding: 1rem; text-align: center; color: #dc3545;">Erreur de chargement</div>';
+            }
+        }
+
+        function displayDocuments(documents) {
+            documentsList.innerHTML = '';
+            
+            documents.forEach(doc => {
+                const docDiv = document.createElement('div');
+                docDiv.className = 'document-item';
+                docDiv.onclick = () => toggleDocumentSelection(doc.filename);
+
+                const isSelected = selectedDocuments.has(doc.filename);
+                
+                // Create embedding models display
+                let embeddingInfo = '';
+                if (doc.embedding_models && doc.embedding_models.length > 0) {
+                    const embeddingList = doc.embedding_models.map(model => {
+                        // Show more descriptive model names
+                        if (model.includes('all-MiniLM-L6-v2')) return 'MiniLM-L6-v2';
+                        if (model.includes('bge-m3')) return 'BGE-M3';
+                        if (model.includes('BAAI/bge-m3')) return 'BGE-M3';
+                        if (model.includes('sentence-transformers/all-MiniLM-L6-v2')) return 'MiniLM-L6-v2';
+                        // For other models, show the last part but keep it more descriptive
+                        const parts = model.split('/');
+                        return parts[parts.length - 1] || model;
+                    }).join(', ');
+                    embeddingInfo = `<div class="document-embeddings">🔗 ${embeddingList}</div>`;
+                } else {
+                    embeddingInfo = '<div class="document-embeddings no-embeddings">❌ Non indexé</div>';
+                }
+                
+                docDiv.innerHTML = `
+                    <div class="document-header">
+                        <input type="checkbox" class="document-checkbox" ${isSelected ? 'checked' : ''} 
+                               onchange="toggleDocumentSelection('${doc.filename}')">
+                        <div class="document-name">${doc.display_name}</div>
+                        <div class="document-status ${doc.has_embeddings ? 'embedded' : 'not-embedded'}">
+                            ${doc.has_embeddings ? '✅' : '❌'}
+                        </div>
+                    </div>
+                    ${embeddingInfo}
+                `;
+
+                if (isSelected) {
+                    docDiv.classList.add('selected');
+                }
+
+                documentsList.appendChild(docDiv);
+            });
+        }
+
+        function toggleDocumentSelection(filename) {
+            // Clear all selections first (radio button behavior)
+            selectedDocuments.clear();
+            // Add only the clicked document
+            selectedDocuments.add(filename);
+            updateDocumentSelection();
+        }
+
+        function updateDocumentSelection() {
+            const checkboxes = documentsList.querySelectorAll('.document-checkbox');
+            const items = documentsList.querySelectorAll('.document-item');
+            
+            checkboxes.forEach((checkbox, index) => {
+                const item = items[index];
+                const filename = checkbox.closest('.document-item').querySelector('.document-name').textContent;
+                
+                // Find the actual filename from display name
+                let actualFilename = '';
+                document.querySelectorAll('.document-item').forEach(docItem => {
+                    const displayName = docItem.querySelector('.document-name').textContent;
+                    if (displayName === filename) {
+                        actualFilename = docItem.querySelector('.document-checkbox').onchange.toString().match(/'([^']+)'/)[1];
+                    }
+                });
+                
+                const isSelected = selectedDocuments.has(actualFilename);
+                checkbox.checked = isSelected;
+                item.classList.toggle('selected', isSelected);
+            });
+
+            console.log('Selected documents:', Array.from(selectedDocuments));
+        }
+
         // Enable/disable send button
         function updateSendButton() {
             const hasText = messageInput.value.trim().length > 0;
@@ -780,6 +584,9 @@
         function addMessage(content, type, sources = null) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}-message`;
+            // Generate unique ID for this message
+            const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            messageDiv.id = messageId;
             
             let messageContent = '';
             if (type === 'user') {
@@ -795,8 +602,16 @@
                 const sourcesDiv = document.createElement('div');
                 sourcesDiv.className = 'sources';
                 sourcesDiv.innerHTML = '<strong>📚 Sources :</strong><br>' + 
-                    sources.map(source => 
-                        `<div class="source-item">• ${source.document} (page ${source.page})</div>`
+                    sources.map((source, index) => 
+                        `<div class="source-item">
+                            <div class="source-header" onclick="toggleSource('${messageId}_src_${index}')">
+                                <span>• ${source.document} (page ${source.page})</span>
+                                <span class="source-toggle">▼</span>
+                            </div>
+                            <div class="source-content" id="${messageId}_src_${index}" style="display: none; margin-left: 20px; margin-top: 5px; padding: 10px; background-color: #f5f5f5; border-radius: 5px; font-size: 0.9em; color: #555;">
+                                ${source.content_preview || 'Contenu non disponible'}
+                            </div>
+                        </div>`
                     ).join('');
                 messageDiv.appendChild(sourcesDiv);
             }
@@ -835,7 +650,8 @@
                     },
                     body: JSON.stringify({
                         message: message,
-                        session_id: currentSessionId
+                        session_id: currentSessionId,
+                        selected_documents: Array.from(selectedDocuments)
                     })
                 });
 
@@ -895,12 +711,31 @@
 
         sendButton.addEventListener('click', sendMessage);
 
+        // Function to toggle source content visibility
+        window.toggleSource = function(sourceId) {
+            const sourceContent = document.getElementById(sourceId);
+            const toggle = sourceContent.previousElementSibling.querySelector('.source-toggle');
+            
+            if (sourceContent.style.display === 'none') {
+                sourceContent.style.display = 'block';
+                toggle.textContent = '▲';
+                toggle.style.transform = 'rotate(180deg)';
+            } else {
+                sourceContent.style.display = 'none';
+                toggle.textContent = '▼';
+                toggle.style.transform = 'rotate(0deg)';
+            }
+        };
+
         // Initialize
         updateSendButton();
         messageInput.focus();
         
         // Initialize sidebar state and load sessions if visible
         initializeSidebarState();
+        
+        // Load documents list
+        loadDocuments();
     </script>
 </body>
 </html>

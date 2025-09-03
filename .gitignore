@@ -31,6 +31,10 @@ models/*.bin
 # Vector stores
 vectorstore/
 
+# Documentation files (except README.md)
+*.md
+!README.md
+
 # OS
 .DS_Store
 Thumbs.db

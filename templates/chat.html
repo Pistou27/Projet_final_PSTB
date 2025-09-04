@@ -8,20 +8,23 @@
 </head>
 <body>
     <div class="header">
-        <h1>🤖 Assistant IA - Système RAG</h1>
-        <p>Posez-moi des questions sur les documents disponibles</p>
+        <h1>C'est très Simple!</h1>
+        <p>Posez-moi des questions sur l'un des jeux disponibles et je réponderai au mieux</p>
         <div class="header-buttons">
             <button id="toggleSidebarBtn" class="header-btn" onclick="toggleSidebar()" title="Afficher/Masquer les sessions">
                 💬 Sessions
             </button>
             <button id="statusBtn" class="header-btn" onclick="checkDocumentsStatus()">
-                📊 Statut Documents
+                📊 Statut des règles
             </button>
             <button id="ingestBtn" class="header-btn" onclick="triggerIngestion()">
-                📂 Indexer Documents
+                📂 Indexer les règles
+            </button>
+            <button id="llmProviderBtn" class="header-btn" onclick="toggleLLMProvider()" title="Basculer entre Mistral et Groq">
+                🤖 Mistral
             </button>
             <button id="toggleDocsBtn" class="header-btn" onclick="toggleDocumentsSidebar()" title="Afficher/Masquer les documents">
-                � Documents
+                📊 Règles
             </button>
         </div>
     </div>
@@ -48,8 +51,8 @@
         <div class="chat-main">            
             <div class="messages" id="messages">
                 <div class="message assistant-message">
-                    <div>👋 Bonjour ! Je suis votre assistant IA spécialisé dans l'analyse de documents.</div>
-                    <div>Posez-moi des questions sur les documents disponibles et je vous répondrai en français avec les références des pages sources.</div>
+                    <div>Bonjour ! Je suis votre assistant spécialisé dans l'analyse des règles de jeux.</div>
+                    <div>Posez-moi des questions sur les documents disponibles et je vous répondrai avec les références des pages sources.</div>
                 </div>
             </div>
 
@@ -64,7 +67,7 @@
         <!-- Documents Sidebar -->
         <div class="documents-sidebar" id="documentsSidebar">
             <div class="documents-header">
-                <h3>📚 Documents</h3>
+                <h3>📚 Règles de jeux</h3>
                 <button class="docs-toggle-btn" onclick="toggleDocumentsSidebar()" title="Masquer les documents">✕</button>
             </div>
             <div class="documents-list" id="documentsList">
@@ -84,11 +87,13 @@
         const sessionsList = document.getElementById('sessionsList');
         const documentsSidebar = document.getElementById('documentsSidebar');
         const documentsList = document.getElementById('documentsList');
+        const llmProviderBtn = document.getElementById('llmProviderBtn');
 
         let isLoading = false;
         let currentSessionId = null;
         let sessionsVisible = false;
         let selectedDocuments = new Set();
+        let currentLLMProvider = 'mistral'; // Par défaut Mistral
 
         // Utility function
         function escapeHtml(text) {
@@ -463,11 +468,30 @@
             const isHidden = documentsSidebar.classList.toggle('hidden');
             
             if (isHidden) {
-                toggleBtn.innerHTML = '📚 Afficher';
+                toggleBtn.innerHTML = '📚 Pas Règles';
                 toggleBtn.title = 'Afficher les documents';
             } else {
-                toggleBtn.innerHTML = '📚 Documents';
+                toggleBtn.innerHTML = '📚 Règles';
                 toggleBtn.title = 'Masquer les documents';
+            }
+        }
+
+        // LLM Provider Toggle Function
+        function toggleLLMProvider() {
+            currentLLMProvider = currentLLMProvider === 'mistral' ? 'groq' : 'mistral';
+            updateLLMProviderButton();
+            showNotification(`🤖 Basculé vers ${currentLLMProvider === 'groq' ? 'Groq Cloud' : 'Mistral Local'}`, 'info');
+        }
+
+        function updateLLMProviderButton() {
+            if (currentLLMProvider === 'groq') {
+                llmProviderBtn.innerHTML = '🚀 Groq';
+                llmProviderBtn.title = 'Utiliser Groq Cloud (llama-3.3-70b-versatile)';
+                llmProviderBtn.style.backgroundColor = '#4CAF50';
+            } else {
+                llmProviderBtn.innerHTML = '🤖 Mistral';
+                llmProviderBtn.title = 'Utiliser Mistral Local';
+                llmProviderBtn.style.backgroundColor = '#2196F3';
             }
         }
 
@@ -581,7 +605,7 @@
         }
 
         // Add message to chat
-        function addMessage(content, type, sources = null) {
+        function addMessage(content, type, sources = null, llmProvider = null) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}-message`;
             // Generate unique ID for this message
@@ -593,27 +617,79 @@
                 messageContent = escapeHtml(content);
             } else {
                 messageContent = content; // Assistant messages can contain HTML/Markdown
+                
+                // Add LLM provider badge for assistant messages
+                if (llmProvider) {
+                    const providerBadge = llmProvider === 'groq' ? 
+                        '<span class="llm-badge groq-badge">🚀 Groq</span>' : 
+                        '<span class="llm-badge mistral-badge">🤖 Mistral</span>';
+                    messageContent = providerBadge + '<br>' + messageContent;
+                }
             }
             
             messageDiv.innerHTML = messageContent;
 
-            // Add sources if provided
+            // Add sources if provided and if the response doesn't indicate lack of information
             if (sources && sources.length > 0) {
-                const sourcesDiv = document.createElement('div');
-                sourcesDiv.className = 'sources';
-                sourcesDiv.innerHTML = '<strong>📚 Sources :</strong><br>' + 
-                    sources.map((source, index) => 
-                        `<div class="source-item">
-                            <div class="source-header" onclick="toggleSource('${messageId}_src_${index}')">
-                                <span>• ${source.document} (page ${source.page})</span>
-                                <span class="source-toggle">▼</span>
-                            </div>
-                            <div class="source-content" id="${messageId}_src_${index}" style="display: none; margin-left: 20px; margin-top: 5px; padding: 10px; background-color: #f5f5f5; border-radius: 5px; font-size: 0.9em; color: #555;">
-                                ${source.content_preview || 'Contenu non disponible'}
-                            </div>
-                        </div>`
-                    ).join('');
-                messageDiv.appendChild(sourcesDiv);
+                // Check if the assistant response indicates lack of information
+                const responseText = messageContent.toLowerCase();
+                const noInfoPhrases = [
+                    "il n'y a pas d'information",
+                    "aucune information",
+                    "pas d'information sur",
+                    "ne contient pas d'information",
+                    "n'est pas mentionné",
+                    "pas de mention",
+                    "contexte ne contient pas",
+                    "documents ne contiennent pas",
+                    "je ne trouve pas d'information",
+                    "il n'existe pas d'indication",
+                    "aucune indication",
+                    "pas d'indication sur",
+                    "ne présente pas d'information",
+                    "n'indique pas",
+                    "pas précisé",
+                    "non mentionné",
+                    "absent des documents"
+                ];
+                
+                // If response indicates no information, don't show sources
+                const hasNoInfo = noInfoPhrases.some(phrase => responseText.includes(phrase));
+                
+                if (!hasNoInfo) {
+                    const sourcesDiv = document.createElement('div');
+                    sourcesDiv.className = 'sources';
+                    
+                    // Limiter à 5 sources maximum pour l'affichage
+                    const maxSources = 5;
+                    const displaySources = sources.slice(0, maxSources);
+                    const remainingSources = sources.length - maxSources;
+                    
+                    let sourcesHtml = '<strong>📚 Sources :</strong><br>' + 
+                        displaySources.map((source, index) => 
+                            `<div class="source-item">
+                                <div class="source-header" onclick="toggleSource('${messageId}_src_${index}')">
+                                    <span>• ${source.document} (page ${source.page})</span>
+                                    <span class="source-toggle">▼</span>
+                                </div>
+                                <div class="source-content" id="${messageId}_src_${index}" style="display: none; margin-left: 20px; margin-top: 5px; padding: 10px; background-color: #f5f5f5; border-radius: 5px; font-size: 0.9em; color: #555;">
+                                    ${source.content_preview || 'Contenu non disponible'}
+                                </div>
+                            </div>`
+                        ).join('');
+                    
+                    // Ajouter un indicateur s'il y a plus de 5 sources
+                    if (remainingSources > 0) {
+                        sourcesHtml += `<div class="more-sources-indicator" style="margin-top: 10px; padding: 8px; background-color: #e9ecef; border-radius: 5px; font-size: 0.85em; color: #6c757d; text-align: center; font-style: italic;">
+                            📋 ... et ${remainingSources} source${remainingSources > 1 ? 's' : ''} supplémentaire${remainingSources > 1 ? 's' : ''} (${sources.length} au total)
+                        </div>`;
+                    }
+                    
+                    sourcesDiv.innerHTML = sourcesHtml;
+                    messageDiv.appendChild(sourcesDiv);
+                } else {
+                    console.log('Sources supprimées car réponse indique absence d\'information');
+                }
             }
 
             messagesContainer.appendChild(messageDiv);
@@ -634,11 +710,26 @@
             isLoading = true;
             updateSendButton();
             
-            // Add loading indicator
+            // Add loading indicator with animation
             const loadingDiv = document.createElement('div');
             loadingDiv.className = 'message assistant-message loading';
-            loadingDiv.textContent = '🤔 Je réfléchis...';
             loadingDiv.id = 'loading-message';
+            
+            // Create animated loading text
+            let dots = '';
+            const baseText = '📖 Je cherche';
+            loadingDiv.textContent = baseText + '...';
+            
+            // Animation interval
+            const loadingAnimation = setInterval(() => {
+                dots = dots.length >= 3 ? '' : dots + '.';
+                if (document.getElementById('loading-message')) {
+                    loadingDiv.textContent = baseText + dots + ' 📖';
+                } else {
+                    clearInterval(loadingAnimation);
+                }
+            }, 500);
+            
             messagesContainer.appendChild(loadingDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
@@ -651,11 +742,12 @@
                     body: JSON.stringify({
                         message: message,
                         session_id: currentSessionId,
-                        selected_documents: Array.from(selectedDocuments)
+                        selected_documents: Array.from(selectedDocuments),
+                        llm_provider: currentLLMProvider
                     })
                 });
 
-                // Remove loading indicator
+                // Remove loading indicator and clear animation
                 const loadingElement = document.getElementById('loading-message');
                 if (loadingElement) {
                     loadingElement.remove();
@@ -678,7 +770,8 @@
                         loadSessions(); // Refresh sessions list
                     }
                     
-                    addMessage(data.response, 'assistant', data.sources);
+                    // Add response with LLM provider info
+                    addMessage(data.response, 'assistant', data.sources, data.llm_provider);
                 } else {
                     // Handle error case (API returns 'error' field when there's an error)
                     addMessage(`❌ Erreur: ${data.error || 'Unknown error'}`, 'assistant');
@@ -686,7 +779,7 @@
                 }
 
             } catch (error) {
-                // Remove loading indicator
+                // Remove loading indicator and clear animation
                 const loadingElement = document.getElementById('loading-message');
                 if (loadingElement) {
                     loadingElement.remove();
@@ -736,6 +829,9 @@
         
         // Load documents list
         loadDocuments();
+        
+        // Initialize LLM provider button
+        updateLLMProviderButton();
     </script>
 </body>
 </html>

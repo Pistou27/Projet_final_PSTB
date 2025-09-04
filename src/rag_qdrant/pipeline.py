@@ -14,6 +14,7 @@ from .embedding_manager import EmbeddingManager
 from .reranker_manager import RerankerManager
 from .qdrant_manager import QdrantManager
 from .mistral_manager import MistralManager
+from .groq_manager import GroqManager
 
 class RAGPipeline:
     """Pipeline RAG complet avec ingestion et recherche"""
@@ -33,6 +34,7 @@ class RAGPipeline:
         self.reranker_manager = RerankerManager()
         self.qdrant_manager = QdrantManager(collection_name=self.collection_name)
         self.mistral_manager = MistralManager()
+        self.groq_manager = GroqManager()
         
         Logger.info(f"🔧 Pipeline RAG initialisé pour collection: {self.collection_name}")
     
@@ -85,7 +87,7 @@ class RAGPipeline:
     
     @timer
     def search(self, query: str, doc_ids: Optional[List[str]] = None, 
-               limit: int = None, use_reranking: bool = True) -> RAGResponse:
+               limit: int = None, use_reranking: bool = True, llm_provider: str = "mistral") -> RAGResponse:
         """
         Recherche sémantique avec RAG
         
@@ -94,11 +96,12 @@ class RAGPipeline:
             doc_ids: Liste des documents à filtrer (optionnel)
             limit: Nombre de résultats max (défaut: config)
             use_reranking: Utiliser le reranking (défaut: True)
+            llm_provider: Fournisseur LLM ("mistral" ou "groq", défaut: "mistral")
             
         Returns:
             Réponse RAG complète
         """
-        limit = limit or RAGConfig.SEARCH_LIMIT
+        limit = limit or RAGConfig.DEFAULT_TOP_K
         
         Logger.info(f"🔍 Recherche: '{query}'")
         if doc_ids:
@@ -137,28 +140,41 @@ class RAGPipeline:
                 passages = [chunk.content for chunk in chunks]
                 scores = self.reranker_manager.rerank(query, passages)
                 
-                # Trier par score et garder le top_k
+                # Trier par score et garder le top_k configuré
                 chunk_scores = list(zip(chunks, scores))
                 chunk_scores.sort(key=lambda x: x[1], reverse=True)
-                chunks = [chunk for chunk, score in chunk_scores[:limit]]
+                rerank_limit = min(limit, RAGConfig.DEFAULT_RERANK_TOP_K)
+                chunks = [chunk for chunk, score in chunk_scores[:rerank_limit]]
                 Logger.info(f"🏆 {len(chunks)} chunks après reranking")
             
             # 4. Construire le contexte
             context = self._build_context(chunks)
             
-            # 5. Génération avec Mistral
+            # 5. Génération avec LLM choisi
             prompt = self._build_prompt(query, context)
-            response = self.mistral_manager.generate_response(prompt)
+            
+            if llm_provider == "groq" and self.groq_manager.is_available():
+                response = self.groq_manager.generate_response(prompt)
+                Logger.info(f"🤖 Réponse générée avec Groq: {llm_provider}")
+            else:
+                response = self.mistral_manager.generate_response(prompt)
+                Logger.info(f"🤖 Réponse générée avec Mistral (fallback ou choix)")
             
             # 6. Enrichir avec métadonnées et sources
             sources = []
-            for chunk in chunks:
-                sources.append({
-                    "doc_id": chunk.doc_id,
-                    "page": chunk.page,
-                    "content": chunk.content[:200] + "..." if len(chunk.content) > 200 else chunk.content,
-                    "score": getattr(chunk, 'score', 0.8)  # Score si disponible
-                })
+            
+            # Si il n'y a pas de citations (absence d'info détectée), ne pas ajouter de sources
+            if response.get("citations", []):
+                for chunk in chunks:
+                    sources.append({
+                        "doc_id": chunk.doc_id,
+                        "page": chunk.page,
+                        "content": chunk.content[:200] + "..." if len(chunk.content) > 200 else chunk.content,
+                        "score": getattr(chunk, 'score', 0.8)  # Score si disponible
+                    })
+                Logger.info(f"📚 {len(sources)} sources ajoutées")
+            else:
+                Logger.info("🚫 Aucune source ajoutée (absence d'information détectée)")
             
             response["sources"] = sources
             response["confidence"] = 0.8  # Valeur par défaut
@@ -220,7 +236,6 @@ Instructions:
 2. Base ta réponse sur le contexte fourni
 3. Si l'information n'est pas dans le contexte, dis-le clairement
 4. Cite tes sources en indiquant le document et la page
-5. Sois précis et factuel
 
 Réponds en français avec les détails pertinents du contexte."""
     
@@ -246,5 +261,6 @@ Réponds en français avec les détails pertinents du contexte."""
             "embedding_manager": self.embedding_manager.is_available(),
             "reranker_manager": self.reranker_manager.is_available(),
             "qdrant_manager": self.qdrant_manager.is_available(),
-            "mistral_manager": self.mistral_manager.is_available()
+            "mistral_manager": self.mistral_manager.is_available(),
+            "groq_manager": self.groq_manager.is_available()
         }

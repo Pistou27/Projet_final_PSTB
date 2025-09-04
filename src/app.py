@@ -8,6 +8,7 @@ from flask import Flask, render_template, request, jsonify, session
 # Local imports
 from config import Config
 from rag_qdrant import RAGPipeline, Logger
+from rag_qdrant.config import RAGConfig
 from memory_store import MemoryStore
 from utils import now_utc_iso, now_formatted
 
@@ -73,6 +74,7 @@ def chat():
         # Gérer les sessions
         session_id = data.get('session_id')
         selected_documents = data.get('selected_documents', [])
+        llm_provider = data.get('llm_provider', 'mistral')  # Par défaut Mistral
         
         # Convertir les noms de fichiers en doc_ids (supprimer l'extension)
         doc_ids = []
@@ -95,8 +97,9 @@ def chat():
         response = rag_pipeline.search(
             query=user_message,
             doc_ids=doc_ids if doc_ids else None,
-            limit=5,
-            use_reranking=True
+            limit=RAGConfig.DEFAULT_TOP_K,
+            use_reranking=True,
+            llm_provider=llm_provider  # Ajout du paramètre LLM
         )
         
         if not response.success:
@@ -108,24 +111,31 @@ def chat():
         # Préparer les sources pour la réponse
         sources_info = []
         # Utiliser response.sources au lieu de response.citations
-        for source in response.sources:
-            if isinstance(source, dict):
-                sources_info.append({
-                    "document": source.get("doc_id", "Document inconnu"),  # Changé de "source" à "document"
-                    "page": source.get("page", "N/A"),
-                    "content_preview": source.get("content", f"Extrait du document {source.get('doc_id')}"),
-                    "embedding_model": "BGE-M3"
-                })
-            else:
-                sources_info.append({
-                    "document": str(source),  # Changé de "source" à "document"
-                    "page": "N/A",
-                    "content_preview": "Source",
-                    "embedding_model": "BGE-M3"
-                })
+        # Seulement si il y a des sources (pas d'absence d'information détectée)
+        if response.sources:
+            for source in response.sources:
+                if isinstance(source, dict):
+                    sources_info.append({
+                        "document": source.get("doc_id", "Document inconnu"),  # Changé de "source" à "document"
+                        "page": source.get("page", "N/A"),
+                        "content_preview": source.get("content", f"Extrait du document {source.get('doc_id')}"),
+                        "embedding_model": "BGE-M3"
+                    })
+                else:
+                    sources_info.append({
+                        "document": str(source),  # Changé de "source" à "document"
+                        "page": "N/A",
+                        "content_preview": "Source",
+                        "embedding_model": "BGE-M3"
+                    })
+            Logger.info(f"📚 {len(sources_info)} sources préparées pour l'affichage")
+        else:
+            Logger.info("🚫 Aucune source à afficher (absence d'information détectée)")
         
-        # Convertir les \n en <br> pour l'affichage HTML
+        # Préparer le texte pour l'affichage HTML
         response_text = response.answer
+        Logger.info(f"🔍 Réponse answer reçue: {response_text[:100]}...")
+        # Convertir les \n en <br> si nécessaire (Mistral peut utiliser l'un ou l'autre)
         response_html = response_text.replace('\n', '<br>')
         
         # Sauvegarder la conversation
@@ -148,6 +158,7 @@ def chat():
             "timestamp": now_utc_iso(),
             "documents_found": len(response.sources),
             "llm_used": True,
+            "llm_provider": llm_provider,  # Ajout du provider utilisé
             "confidence": response.confidence
         })
         
@@ -219,6 +230,14 @@ def api_search():
 @app.route('/api/ingest', methods=['GET', 'POST'])
 def api_ingest():
     """API pour l'ingestion incrémentale de documents"""
+    global rag_pipeline
+    
+    if not rag_pipeline:
+        return jsonify({
+            "success": False,
+            "error": "Système non initialisé"
+        }), 500
+    
     import time
     start_time = time.time()
     
@@ -245,10 +264,11 @@ def api_ingest():
         
         # Utiliser le nouveau pipeline pour ingérer les documents
         from pathlib import Path
+        from config import Config
         
         # Répertoire par défaut s'il n'est pas spécifié
         if not data_dir:
-            data_dir = "../data"  # Chemin relatif depuis src vers data
+            data_dir = Config.DATA_DIR  # Utiliser le chemin de configuration
         
         data_path = Path(data_dir)
         if not data_path.exists():

@@ -518,3 +518,25 @@ body {
         z-index: 50;
     }
 }
+
+/* LLM Provider Badges */
+.llm-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.groq-badge {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+    border: 1px solid #4CAF50;
+}
+
+.mistral-badge {
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    color: white;
+    border: 1px solid #2196F3;
+}

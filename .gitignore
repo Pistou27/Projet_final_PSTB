@@ -43,8 +43,3 @@ Thumbs.db
 *.tmp
 *.temp
 
-setup.ps1
-show_chunks.py
-start.ps1
-test_ingest.py
-test_search.py

@@ -7,7 +7,15 @@ __pycache__/
 .venv/
 env/
 ENV/
+
+# Data and test results
 data/*
+test/results/
+test/*.json
+test/*.csv
+test/*.png
+test/*.txt
+test/
 
 # Environment variables
 .env
@@ -31,9 +39,25 @@ models/*.bin
 # Vector stores
 vectorstore/
 
+# RAGAS evaluation files
+test/results/
+*.ragas.json
+*_evaluation_*.json
+*_metrics_*.json
+*_responses_*.json
+*_scores_*.json
+
+# Matplotlib/visualization cache
+.matplotlib/
+*.png
+*.jpg
+*.jpeg
+*.svg
+
 # Documentation files (except README.md)
 *.md
 !README.md
+!test/README.md
 
 # OS
 .DS_Store
@@ -42,4 +66,8 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Old/test HTML files
+templates/chat_old.html
+templates/test_suite.html
 

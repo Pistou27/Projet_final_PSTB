@@ -41,6 +41,14 @@ SQLAlchemy==2.0.35
 tqdm==4.66.5
 requests>=2.31.0
 
+# Evaluation with RAGAS
+ragas==0.1.15
+datasets==2.19.0
+
+# Visualization for reports
+matplotlib==3.7.2
+seaborn==0.12.2
+
 # Development et Debug (optionnel)
 # pytest>=7.0.0
 # pytest-cov>=4.0.0

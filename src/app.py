@@ -43,6 +43,16 @@ def index():
     """Page d'accueil avec interface de chat"""
     return render_template('chat.html')
 
+# @app.route('/new')
+# def index_new():
+#     """Page d'accueil avec la nouvelle interface modulaire"""
+#     return render_template('chat_new.html')
+
+# @app.route('/test')
+# def test_suite():
+#     """Page de tests pour comparer les versions"""
+#     return render_template('test_suite.html')
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     """Endpoint API pour les requêtes de chat"""

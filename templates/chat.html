@@ -4,834 +4,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat RAG - Projet Final GenIA</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/static/css/variables.css">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="header">
+    <!-- Header -->
+    <header class="header">
         <h1>C'est très Simple!</h1>
         <p>Posez-moi des questions sur l'un des jeux disponibles et je réponderai au mieux</p>
-        <div class="header-buttons">
-            <button id="toggleSidebarBtn" class="header-btn" onclick="toggleSidebar()" title="Afficher/Masquer les sessions">
+        
+        <nav class="header-buttons">
+            <button id="toggleSidebarBtn" class="header-btn" title="Afficher/Masquer les sessions">
                 💬 Sessions
             </button>
-            <button id="statusBtn" class="header-btn" onclick="checkDocumentsStatus()">
+            <button id="statusBtn" class="header-btn">
                 📊 Statut des règles
             </button>
-            <button id="ingestBtn" class="header-btn" onclick="triggerIngestion()">
+            <button id="ingestBtn" class="header-btn">
                 📂 Indexer les règles
             </button>
-            <button id="llmProviderBtn" class="header-btn" onclick="toggleLLMProvider()" title="Basculer entre Mistral et Groq">
+            <button id="llmProviderBtn" class="header-btn" title="Basculer entre Mistral et Groq">
                 🤖 Mistral
             </button>
-            <button id="toggleDocsBtn" class="header-btn" onclick="toggleDocumentsSidebar()" title="Afficher/Masquer les documents">
+            <button id="toggleDocsBtn" class="header-btn" title="Afficher/Masquer les documents">
                 📊 Règles
             </button>
-        </div>
-    </div>
+        </nav>
+    </header>
 
-    <div class="chat-container" id="chatContainer">
+    <!-- Main Application Container -->
+    <main class="chat-container" id="chatContainer">
         <!-- Sessions Sidebar -->
-        <div class="sessions-sidebar" id="sessionsSidebar">
-            <div class="sessions-header">
+        <aside class="sessions-sidebar" id="sessionsSidebar">
+            <header class="sessions-header">
                 <h3>💬 Sessions</h3>
-                <button class="session-btn" onclick="toggleSessions()">✕</button>
+                <button class="session-btn close-sessions-btn" onclick="window.toggleSidebar()" aria-label="Fermer les sessions">✕</button>
+            </header>
+            
+            <div class="sessions-actions">
+                <button class="new-session-btn" onclick="window.createNewSession()">
+                    ➕ Nouvelle session
+                </button>
+                <button class="delete-all-sessions-btn" onclick="window.deleteAllSessions()">
+                    🗑️ Supprimer toutes les sessions
+                </button>
             </div>
-            <button class="new-session-btn" onclick="createNewSession()">
-                ➕ Nouvelle session
-            </button>
-            <button class="delete-all-sessions-btn" onclick="deleteAllSessions()">
-                🗑️ Supprimer toutes les sessions
-            </button>
-            <div class="sessions-list" id="sessionsList">
+            
+            <div class="sessions-list" id="sessionsList" role="list">
                 <!-- Sessions will be loaded here -->
             </div>
-        </div>
+        </aside>
 
-        <!-- Main Chat Area -->
-        <div class="chat-main">            
-            <div class="messages" id="messages">
+        <!-- Chat Area -->
+        <section class="chat-main" role="main">            
+            <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Messages de conversation">
                 <div class="message assistant-message">
                     <div>Bonjour ! Je suis votre assistant spécialisé dans l'analyse des règles de jeux.</div>
                     <div>Posez-moi des questions sur les documents disponibles et je vous répondrai avec les références des pages sources.</div>
                 </div>
             </div>
 
-            <div class="input-container">
+            <form class="input-container" role="form" aria-label="Envoyer un message">
                 <div class="input-group">
-                    <input type="text" id="messageInput" placeholder="Tapez votre question ici..." maxlength="1000">
-                    <button id="sendButton" disabled>Envoyer</button>
+                    <label for="messageInput" class="sr-only">Votre question</label>
+                    <input 
+                        type="text" 
+                        id="messageInput" 
+                        placeholder="Tapez votre question ici..." 
+                        maxlength="1000"
+                        autocomplete="off"
+                        aria-describedby="messageHelp"
+                    >
+                    <button 
+                        type="submit" 
+                        id="sendButton" 
+                        disabled
+                        aria-label="Envoyer le message"
+                    >
+                        Envoyer
+                    </button>
                 </div>
-            </div>
-        </div>
+                <div id="messageHelp" class="sr-only">Tapez votre question et appuyez sur Entrée ou cliquez sur Envoyer</div>
+            </form>
+        </section>
 
         <!-- Documents Sidebar -->
-        <div class="documents-sidebar" id="documentsSidebar">
-            <div class="documents-header">
+        <aside class="documents-sidebar" id="documentsSidebar">
+            <header class="documents-header">
                 <h3>📚 Règles de jeux</h3>
-                <button class="docs-toggle-btn" onclick="toggleDocumentsSidebar()" title="Masquer les documents">✕</button>
-            </div>
-            <div class="documents-list" id="documentsList">
+                <button class="docs-toggle-btn close-docs-btn" onclick="window.toggleDocumentsSidebar()" title="Masquer les documents" aria-label="Masquer les documents">✕</button>
+            </header>
+            
+            <div class="documents-list" id="documentsList" role="list" aria-label="Liste des documents disponibles">
                 <!-- Documents will be loaded here -->
             </div>
-        </div>
-    </div>
+        </aside>
+    </main>
 
-    <script>
-        // Elements
-        const messagesContainer = document.getElementById('messages');
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
-        const statusBtn = document.getElementById('statusBtn');
-        const ingestBtn = document.getElementById('ingestBtn');
-        const sessionsSidebar = document.getElementById('sessionsSidebar');
-        const sessionsList = document.getElementById('sessionsList');
-        const documentsSidebar = document.getElementById('documentsSidebar');
-        const documentsList = document.getElementById('documentsList');
-        const llmProviderBtn = document.getElementById('llmProviderBtn');
+    <!-- Screen reader only content -->
+    <div class="sr-only" aria-live="polite" id="announcements"></div>
 
-        let isLoading = false;
-        let currentSessionId = null;
-        let sessionsVisible = false;
-        let selectedDocuments = new Set();
-        let currentLLMProvider = 'mistral'; // Par défaut Mistral
-
-        // Utility function
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // Show notification message
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `message assistant-message ${type}`;
-            notification.innerHTML = message;
-            messagesContainer.appendChild(notification);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        // Check documents status
-        async function checkDocumentsStatus() {
-            statusBtn.disabled = true;
-            statusBtn.textContent = '🔄 Vérification...';
-
-            try {
-                const response = await fetch('/api/ingest/status');
-                const data = await response.json();
-
-                if (data.success) {
-                    // Afficher simplement la liste des documents disponibles
-                    if (data.all_document_names && data.all_document_names.length > 0) {
-                        const documentsList = data.all_document_names.join(', ');
-                        const statusText = data.index_exists ? '✅ Documents indexés' : '📄 Documents disponibles';
-                        
-                        const message = `📚 <strong>${statusText} :</strong><br>${documentsList}`;
-                        showNotification(message, data.index_exists ? 'success' : 'info');
-                    } else {
-                        showNotification('📭 <strong>Aucun document trouvé</strong><br>Veuillez ajouter des fichiers PDF dans le dossier data/', 'error');
-                    }
-                } else {
-                    showNotification(`❌ Erreur lors de la vérification : ${data.message}`, 'error');
-                }
-            } catch (error) {
-                showNotification(`❌ Erreur de connexion : ${error.message}`, 'error');
-            } finally {
-                statusBtn.disabled = false;
-                statusBtn.textContent = '📊 Statut Documents';
-            }
-        }
-
-        // Trigger document ingestion
-        async function triggerIngestion() {
-            ingestBtn.disabled = true;
-            ingestBtn.textContent = '🔄 Indexation...';
-
-            showNotification('🚀 <strong>Début de l\'indexation des documents...</strong><br>Cette opération peut prendre quelques minutes.', 'info');
-
-            try {
-                const response = await fetch('/api/ingest', {
-                    method: 'POST'
-                });
-                const data = await response.json();
-
-                if (data.success) {
-                    // Déterminer le message en fonction des résultats
-                    const processed = data.processed_documents || 0;
-                    const chunks = data.total_chunks || 0;
-                    const skipped = data.stats ? data.stats.files_skipped || 0 : 0;
-                    const processing_time = data.processing_time || "Non disponible";
-                    
-                    let message;
-                    if (chunks > 0) {
-                        // Cas normal: nouveaux chunks ajoutés
-                        message = `✅ <strong>Indexation terminée avec succès !</strong><br>
-                            • Documents traités : <strong>${processed}</strong><br>
-                            • Chunks créés : <strong>${chunks}</strong><br>
-                            • Temps de traitement : <strong>${processing_time}</strong>`;
-                    } else if (skipped > 0) {
-                        // Cas où tous les documents sont déjà indexés
-                        message = `ℹ️ <strong>Indexation terminée !</strong><br>
-                            • Documents déjà indexés : <strong>${skipped}</strong><br>
-                            • Nouveaux chunks : <strong>${chunks}</strong><br>
-                            • Temps de traitement : <strong>${processing_time}</strong><br>
-                            <em>Tous les documents sont déjà à jour dans l'index.</em>`;
-                    } else {
-                        // Cas par défaut
-                        message = `✅ <strong>Indexation terminée !</strong><br>
-                            • Documents traités : <strong>${processed}</strong><br>
-                            • Chunks créés : <strong>${chunks}</strong><br>
-                            • Temps de traitement : <strong>${processing_time}</strong>`;
-                    }
-                    
-                    showNotification(message, chunks > 0 ? 'success' : 'info');
-                } else {
-                    showNotification(`❌ Erreur lors de l'indexation : ${data.error}`, 'error');
-                }
-            } catch (error) {
-                showNotification(`❌ Erreur de connexion : ${error.message}`, 'error');
-            } finally {
-                ingestBtn.disabled = false;
-                ingestBtn.textContent = '📂 Indexer Documents';
-            }
-        }
-
-        // Session Management Functions
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sessionsSidebar');
-            const container = document.getElementById('chatContainer');
-            const toggleBtn = document.getElementById('toggleSidebarBtn');
-            
-            console.log('Toggle sidebar called');
-            console.log('Sidebar element:', sidebar);
-            console.log('Container element:', container);
-            console.log('Toggle button:', toggleBtn);
-            
-            const isHidden = sidebar.classList.contains('hidden');
-            console.log('Is currently hidden:', isHidden);
-            
-            if (isHidden) {
-                sidebar.classList.remove('hidden');
-                container.classList.remove('sidebar-hidden');
-                toggleBtn.innerHTML = '💬 Sessions';
-                localStorage.setItem('sidebarHidden', 'false');
-                sessionsVisible = true;
-                loadSessions();
-                console.log('Sidebar shown');
-            } else {
-                sidebar.classList.add('hidden');
-                container.classList.add('sidebar-hidden');
-                toggleBtn.innerHTML = '💬 Afficher';
-                localStorage.setItem('sidebarHidden', 'true');
-                sessionsVisible = false;
-                console.log('Sidebar hidden');
-            }
-        }
-
-        // Initialize sidebar state from localStorage
-        function initializeSidebarState() {
-            const isHidden = localStorage.getItem('sidebarHidden') === 'true';
-            const sidebar = document.getElementById('sessionsSidebar');
-            const container = document.getElementById('chatContainer');
-            const toggleBtn = document.getElementById('toggleSidebarBtn');
-            
-            if (isHidden) {
-                sidebar.classList.add('hidden');
-                container.classList.add('sidebar-hidden');
-                toggleBtn.innerHTML = '💬 Afficher';
-                sessionsVisible = false;
-            } else {
-                sessionsVisible = true;
-                loadSessions();
-            }
-        }
-        function toggleSessions() {
-            sessionsVisible = !sessionsVisible;
-            if (sessionsVisible) {
-                sessionsSidebar.classList.remove('hidden');
-                loadSessions();
-            } else {
-                sessionsSidebar.classList.add('hidden');
-            }
-        }
-
-        async function loadSessions() {
-            try {
-                const response = await fetch('/api/sessions');
-                const data = await response.json();
-
-                if (data.success) {
-                    displaySessions(data.sessions);
-                } else {
-                    console.error('Error loading sessions:', data.error);
-                }
-            } catch (error) {
-                console.error('Error loading sessions:', error);
-            }
-        }
-
-        function displaySessions(sessions) {
-            sessionsList.innerHTML = '';
-            
-            if (sessions.length === 0) {
-                sessionsList.innerHTML = '<div style="padding: 1rem; text-align: center; color: #6c757d;">Aucune session trouvée</div>';
-                return;
-            }
-
-            sessions.forEach(session => {
-                const sessionDiv = document.createElement('div');
-                sessionDiv.className = `session-item ${session.session_id === currentSessionId ? 'active' : ''}`;
-                sessionDiv.onclick = () => selectSession(session.session_id);
-
-                const lastActivity = new Date(session.last_activity).toLocaleDateString('fr-FR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-
-                sessionDiv.innerHTML = `
-                    <div class="session-title">${session.title || 'Session sans titre'}</div>
-                    <div class="session-meta">
-                        ${session.message_count} messages • ${lastActivity}
-                        <button class="session-btn delete" onclick="event.stopPropagation(); deleteSession('${session.session_id}')">
-                            🗑️
-                        </button>
-                    </div>
-                `;
-
-                sessionsList.appendChild(sessionDiv);
-            });
-        }
-
-        async function createNewSession() {
-            try {
-                const sessionId = 'session_' + Date.now();
-                const response = await fetch('/api/sessions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        session_id: sessionId,
-                        title: 'Nouvelle conversation'
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    currentSessionId = sessionId;
-                    clearMessages();
-                    loadSessions();
-                    showNotification('✅ Nouvelle session créée !', 'success');
-                } else {
-                    showNotification(`❌ Erreur lors de la création : ${data.error}`, 'error');
-                }
-            } catch (error) {
-                showNotification(`❌ Erreur de connexion : ${error.message}`, 'error');
-            }
-        }
-
-        async function selectSession(sessionId) {
-            if (sessionId === currentSessionId) return;
-
-            currentSessionId = sessionId;
-            clearMessages();
-            
-            try {
-                const response = await fetch(`/api/sessions/${sessionId}/history`);
-                const data = await response.json();
-
-                if (data.success) {
-                    loadSessionHistory(data.history);
-                    loadSessions(); // Refresh to update active state
-                    showNotification(`📂 Session chargée (${data.history.length} messages)`, 'info');
-                } else {
-                    showNotification(`❌ Erreur lors du chargement : ${data.error}`, 'error');
-                }
-            } catch (error) {
-                showNotification(`❌ Erreur de connexion : ${error.message}`, 'error');
-            }
-        }
-
-        async function deleteSession(sessionId) {
-            if (!confirm('Êtes-vous sûr de vouloir supprimer cette session ?')) return;
-
-            try {
-                const response = await fetch(`/api/sessions/${sessionId}`, {
-                    method: 'DELETE'
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    if (sessionId === currentSessionId) {
-                        currentSessionId = null;
-                        clearMessages();
-                    }
-                    loadSessions();
-                    showNotification('✅ Session supprimée !', 'success');
-                } else {
-                    showNotification(`❌ Erreur lors de la suppression : ${data.error}`, 'error');
-                }
-            } catch (error) {
-                showNotification(`❌ Erreur de connexion : ${error.message}`, 'error');
-            }
-        }
-
-        async function deleteAllSessions() {
-            if (!confirm('⚠️ Êtes-vous sûr de vouloir supprimer TOUTES les sessions ? Cette action est irréversible !')) return;
-
-            const deleteAllBtn = document.querySelector('.delete-all-sessions-btn');
-            deleteAllBtn.disabled = true;
-            deleteAllBtn.textContent = '🔄 Suppression...';
-
-            try {
-                // First, get all sessions
-                const sessionsResponse = await fetch('/api/sessions');
-                const sessionsData = await sessionsResponse.json();
-
-                if (!sessionsData.success) {
-                    throw new Error('Impossible de récupérer la liste des sessions');
-                }
-
-                const sessions = sessionsData.sessions;
-                if (sessions.length === 0) {
-                    showNotification('ℹ️ Aucune session à supprimer.', 'info');
-                    return;
-                }
-
-                // Delete each session
-                let deletedCount = 0;
-                let errors = 0;
-
-                for (const session of sessions) {
-                    try {
-                        const response = await fetch(`/api/sessions/${session.session_id}`, {
-                            method: 'DELETE'
-                        });
-
-                        const data = await response.json();
-                        if (data.success) {
-                            deletedCount++;
-                        } else {
-                            errors++;
-                        }
-                    } catch (error) {
-                        errors++;
-                    }
-                }
-
-                // Reset current session
-                currentSessionId = null;
-                clearMessages();
-                
-                // Refresh sessions list
-                loadSessions();
-
-                // Show result notification
-                if (errors === 0) {
-                    showNotification(`✅ Toutes les sessions ont été supprimées ! (${deletedCount} sessions)`, 'success');
-                } else {
-                    showNotification(`⚠️ ${deletedCount} sessions supprimées, ${errors} erreurs.`, 'error');
-                }
-
-            } catch (error) {
-                showNotification(`❌ Erreur lors de la suppression : ${error.message}`, 'error');
-            } finally {
-                deleteAllBtn.disabled = false;
-                deleteAllBtn.textContent = '🗑️ Supprimer Toutes les Sessions';
-            }
-        }
-
-        function loadSessionHistory(history) {
-            // Add welcome message first
-            addMessage('👋 Bonjour ! Je suis votre assistant IA spécialisé dans l\'analyse de documents.<br>Posez-moi des questions sur les documents disponibles et je vous répondrai en français avec les références des pages sources.', 'assistant');
-
-            // Load conversation history
-            history.forEach(exchange => {
-                addMessage(exchange.user_message, 'user');
-                addMessage(exchange.assistant_response, 'assistant', exchange.sources);
-            });
-        }
-
-        function clearMessages() {
-            messagesContainer.innerHTML = '';
-            // Add default welcome message
-            addMessage('👋 Bonjour ! Je suis votre assistant IA spécialisé dans l\'analyse de documents.<br>Posez-moi des questions sur les documents disponibles et je vous répondrai en français avec les références des pages sources.', 'assistant');
-        }
-
-        // Documents Management Functions
-        function toggleDocumentsSidebar() {
-            const toggleBtn = document.getElementById('toggleDocsBtn');
-            const isHidden = documentsSidebar.classList.toggle('hidden');
-            
-            if (isHidden) {
-                toggleBtn.innerHTML = '📚 Pas Règles';
-                toggleBtn.title = 'Afficher les documents';
-            } else {
-                toggleBtn.innerHTML = '📚 Règles';
-                toggleBtn.title = 'Masquer les documents';
-            }
-        }
-
-        // LLM Provider Toggle Function
-        function toggleLLMProvider() {
-            currentLLMProvider = currentLLMProvider === 'mistral' ? 'groq' : 'mistral';
-            updateLLMProviderButton();
-            showNotification(`🤖 Basculé vers ${currentLLMProvider === 'groq' ? 'Groq Cloud' : 'Mistral Local'}`, 'info');
-        }
-
-        function updateLLMProviderButton() {
-            if (currentLLMProvider === 'groq') {
-                llmProviderBtn.innerHTML = '🚀 Groq';
-                llmProviderBtn.title = 'Utiliser Groq Cloud (llama-3.3-70b-versatile)';
-                llmProviderBtn.style.backgroundColor = '#4CAF50';
-            } else {
-                llmProviderBtn.innerHTML = '🤖 Mistral';
-                llmProviderBtn.title = 'Utiliser Mistral Local';
-                llmProviderBtn.style.backgroundColor = '#2196F3';
-            }
-        }
-
-        async function loadDocuments() {
-            try {
-                const response = await fetch('/api/ingest/status');
-                const data = await response.json();
-
-                if (data.success && data.document_names) {
-                    displayDocuments(data.document_names);
-                    // Select only the first document by default
-                    selectedDocuments.clear();
-                    if (data.document_names.length > 0) {
-                        selectedDocuments.add(data.document_names[0].filename);
-                    }
-                    updateDocumentSelection();
-                } else {
-                    documentsList.innerHTML = '<div style="padding: 1rem; text-align: center; color: #6c757d;">Aucun document trouvé</div>';
-                }
-            } catch (error) {
-                console.error('Error loading documents:', error);
-                documentsList.innerHTML = '<div style="padding: 1rem; text-align: center; color: #dc3545;">Erreur de chargement</div>';
-            }
-        }
-
-        function displayDocuments(documents) {
-            documentsList.innerHTML = '';
-            
-            documents.forEach(doc => {
-                const docDiv = document.createElement('div');
-                docDiv.className = 'document-item';
-                docDiv.onclick = () => toggleDocumentSelection(doc.filename);
-
-                const isSelected = selectedDocuments.has(doc.filename);
-                
-                // Create embedding models display
-                let embeddingInfo = '';
-                if (doc.embedding_models && doc.embedding_models.length > 0) {
-                    const embeddingList = doc.embedding_models.map(model => {
-                        // Show more descriptive model names
-                        if (model.includes('all-MiniLM-L6-v2')) return 'MiniLM-L6-v2';
-                        if (model.includes('bge-m3')) return 'BGE-M3';
-                        if (model.includes('BAAI/bge-m3')) return 'BGE-M3';
-                        if (model.includes('sentence-transformers/all-MiniLM-L6-v2')) return 'MiniLM-L6-v2';
-                        // For other models, show the last part but keep it more descriptive
-                        const parts = model.split('/');
-                        return parts[parts.length - 1] || model;
-                    }).join(', ');
-                    embeddingInfo = `<div class="document-embeddings">🔗 ${embeddingList}</div>`;
-                } else {
-                    embeddingInfo = '<div class="document-embeddings no-embeddings">❌ Non indexé</div>';
-                }
-                
-                docDiv.innerHTML = `
-                    <div class="document-header">
-                        <input type="checkbox" class="document-checkbox" ${isSelected ? 'checked' : ''} 
-                               onchange="toggleDocumentSelection('${doc.filename}')">
-                        <div class="document-name">${doc.display_name}</div>
-                        <div class="document-status ${doc.has_embeddings ? 'embedded' : 'not-embedded'}">
-                            ${doc.has_embeddings ? '✅' : '❌'}
-                        </div>
-                    </div>
-                    ${embeddingInfo}
-                `;
-
-                if (isSelected) {
-                    docDiv.classList.add('selected');
-                }
-
-                documentsList.appendChild(docDiv);
-            });
-        }
-
-        function toggleDocumentSelection(filename) {
-            // Clear all selections first (radio button behavior)
-            selectedDocuments.clear();
-            // Add only the clicked document
-            selectedDocuments.add(filename);
-            updateDocumentSelection();
-        }
-
-        function updateDocumentSelection() {
-            const checkboxes = documentsList.querySelectorAll('.document-checkbox');
-            const items = documentsList.querySelectorAll('.document-item');
-            
-            checkboxes.forEach((checkbox, index) => {
-                const item = items[index];
-                const filename = checkbox.closest('.document-item').querySelector('.document-name').textContent;
-                
-                // Find the actual filename from display name
-                let actualFilename = '';
-                document.querySelectorAll('.document-item').forEach(docItem => {
-                    const displayName = docItem.querySelector('.document-name').textContent;
-                    if (displayName === filename) {
-                        actualFilename = docItem.querySelector('.document-checkbox').onchange.toString().match(/'([^']+)'/)[1];
-                    }
-                });
-                
-                const isSelected = selectedDocuments.has(actualFilename);
-                checkbox.checked = isSelected;
-                item.classList.toggle('selected', isSelected);
-            });
-
-            console.log('Selected documents:', Array.from(selectedDocuments));
-        }
-
-        // Enable/disable send button
-        function updateSendButton() {
-            const hasText = messageInput.value.trim().length > 0;
-            sendButton.disabled = !hasText || isLoading;
-        }
-
-        // Add message to chat
-        function addMessage(content, type, sources = null, llmProvider = null) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${type}-message`;
-            // Generate unique ID for this message
-            const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            messageDiv.id = messageId;
-            
-            let messageContent = '';
-            if (type === 'user') {
-                messageContent = escapeHtml(content);
-            } else {
-                messageContent = content; // Assistant messages can contain HTML/Markdown
-                
-                // Add LLM provider badge for assistant messages
-                if (llmProvider) {
-                    const providerBadge = llmProvider === 'groq' ? 
-                        '<span class="llm-badge groq-badge">🚀 Groq</span>' : 
-                        '<span class="llm-badge mistral-badge">🤖 Mistral</span>';
-                    messageContent = providerBadge + '<br>' + messageContent;
-                }
-            }
-            
-            messageDiv.innerHTML = messageContent;
-
-            // Add sources if provided and if the response doesn't indicate lack of information
-            if (sources && sources.length > 0) {
-                // Check if the assistant response indicates lack of information
-                const responseText = messageContent.toLowerCase();
-                const noInfoPhrases = [
-                    "il n'y a pas d'information",
-                    "aucune information",
-                    "pas d'information sur",
-                    "ne contient pas d'information",
-                    "n'est pas mentionné",
-                    "pas de mention",
-                    "contexte ne contient pas",
-                    "documents ne contiennent pas",
-                    "je ne trouve pas d'information",
-                    "il n'existe pas d'indication",
-                    "aucune indication",
-                    "pas d'indication sur",
-                    "ne présente pas d'information",
-                    "n'indique pas",
-                    "pas précisé",
-                    "non mentionné",
-                    "absent des documents"
-                ];
-                
-                // If response indicates no information, don't show sources
-                const hasNoInfo = noInfoPhrases.some(phrase => responseText.includes(phrase));
-                
-                if (!hasNoInfo) {
-                    const sourcesDiv = document.createElement('div');
-                    sourcesDiv.className = 'sources';
-                    
-                    // Limiter à 5 sources maximum pour l'affichage
-                    const maxSources = 5;
-                    const displaySources = sources.slice(0, maxSources);
-                    const remainingSources = sources.length - maxSources;
-                    
-                    let sourcesHtml = '<strong>📚 Sources :</strong><br>' + 
-                        displaySources.map((source, index) => 
-                            `<div class="source-item">
-                                <div class="source-header" onclick="toggleSource('${messageId}_src_${index}')">
-                                    <span>• ${source.document} (page ${source.page})</span>
-                                    <span class="source-toggle">▼</span>
-                                </div>
-                                <div class="source-content" id="${messageId}_src_${index}" style="display: none; margin-left: 20px; margin-top: 5px; padding: 10px; background-color: #f5f5f5; border-radius: 5px; font-size: 0.9em; color: #555;">
-                                    ${source.content_preview || 'Contenu non disponible'}
-                                </div>
-                            </div>`
-                        ).join('');
-                    
-                    // Ajouter un indicateur s'il y a plus de 5 sources
-                    if (remainingSources > 0) {
-                        sourcesHtml += `<div class="more-sources-indicator" style="margin-top: 10px; padding: 8px; background-color: #e9ecef; border-radius: 5px; font-size: 0.85em; color: #6c757d; text-align: center; font-style: italic;">
-                            📋 ... et ${remainingSources} source${remainingSources > 1 ? 's' : ''} supplémentaire${remainingSources > 1 ? 's' : ''} (${sources.length} au total)
-                        </div>`;
-                    }
-                    
-                    sourcesDiv.innerHTML = sourcesHtml;
-                    messageDiv.appendChild(sourcesDiv);
-                } else {
-                    console.log('Sources supprimées car réponse indique absence d\'information');
-                }
-            }
-
-            messagesContainer.appendChild(messageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        // Send message
-        async function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message || isLoading) return;
-
-            // Add user message
-            addMessage(message, 'user');
-            messageInput.value = '';
-            updateSendButton();
-
-            // Set loading state
-            isLoading = true;
-            updateSendButton();
-            
-            // Add loading indicator with animation
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'message assistant-message loading';
-            loadingDiv.id = 'loading-message';
-            
-            // Create animated loading text
-            let dots = '';
-            const baseText = '📖 Je cherche';
-            loadingDiv.textContent = baseText + '...';
-            
-            // Animation interval
-            const loadingAnimation = setInterval(() => {
-                dots = dots.length >= 3 ? '' : dots + '.';
-                if (document.getElementById('loading-message')) {
-                    loadingDiv.textContent = baseText + dots + ' 📖';
-                } else {
-                    clearInterval(loadingAnimation);
-                }
-            }, 500);
-            
-            messagesContainer.appendChild(loadingDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-            try {
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        session_id: currentSessionId,
-                        selected_documents: Array.from(selectedDocuments),
-                        llm_provider: currentLLMProvider
-                    })
-                });
-
-                // Remove loading indicator and clear animation
-                const loadingElement = document.getElementById('loading-message');
-                if (loadingElement) {
-                    loadingElement.remove();
-                }
-
-                if (!response.ok) {
-                    throw new Error(`Erreur HTTP: ${response.status}`);
-                }
-
-                const data = await response.json();
-                
-                // Debug logging to see what we're actually receiving
-                console.log('API Response:', data);
-
-                // Check if we have a valid response (API returns 'response' field when successful)
-                if (data.response) {
-                    // Update current session ID if it was created
-                    if (data.session_id && !currentSessionId) {
-                        currentSessionId = data.session_id;
-                        loadSessions(); // Refresh sessions list
-                    }
-                    
-                    // Add response with LLM provider info
-                    addMessage(data.response, 'assistant', data.sources, data.llm_provider);
-                } else {
-                    // Handle error case (API returns 'error' field when there's an error)
-                    addMessage(`❌ Erreur: ${data.error || 'Unknown error'}`, 'assistant');
-                    console.log('Error details:', data);
-                }
-
-            } catch (error) {
-                // Remove loading indicator and clear animation
-                const loadingElement = document.getElementById('loading-message');
-                if (loadingElement) {
-                    loadingElement.remove();
-                }
-                
-                console.error('Erreur:', error);
-                addMessage(`❌ Erreur de connexion: ${error.message}`, 'assistant');
-            } finally {
-                isLoading = false;
-                updateSendButton();
-            }
-        }
-
-        // Event listeners
-        messageInput.addEventListener('input', updateSendButton);
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-
-        sendButton.addEventListener('click', sendMessage);
-
-        // Function to toggle source content visibility
-        window.toggleSource = function(sourceId) {
-            const sourceContent = document.getElementById(sourceId);
-            const toggle = sourceContent.previousElementSibling.querySelector('.source-toggle');
-            
-            if (sourceContent.style.display === 'none') {
-                sourceContent.style.display = 'block';
-                toggle.textContent = '▲';
-                toggle.style.transform = 'rotate(180deg)';
-            } else {
-                sourceContent.style.display = 'none';
-                toggle.textContent = '▼';
-                toggle.style.transform = 'rotate(0deg)';
-            }
-        };
-
-        // Initialize
-        updateSendButton();
-        messageInput.focus();
-        
-        // Initialize sidebar state and load sessions if visible
-        initializeSidebarState();
-        
-        // Load documents list
-        loadDocuments();
-        
-        // Initialize LLM provider button
-        updateLLMProviderButton();
-    </script>
+    <!-- JavaScript Modules -->
+    <script type="module" src="/static/js/app.js"></script>
 </body>
 </html>
